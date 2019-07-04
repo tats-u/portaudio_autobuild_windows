@@ -1,5 +1,43 @@
 #!/usr/bin/env pwsh
 
+<#
+.SYNOPSIS
+Build PortAudio Automatically
+.DESCRIPTION
+This script builds PortAudio (http://www.portaudio.com) with WASAPI & ASIO support in the folder .\portaudio.
+You don't have to run Visual Studio anymore.
+
+Copyright (C) 2019 Tatsunori Uchino
+MIT License (See https://github.com/tats-u/portaudio_autobuild_windows/blob/master/LICENSE)
+.EXAMPLE
+.\build_portaudio_win.ps1
+Builds PortAudio with default options.
+.EXAMPLE
+.\build_portaudio_win.ps1 -Verbose -DebugBuild -NoWASAPI
+Builds PortAudio with support only of ASIO, with more messages, and with debug symbols.
+Built libraries are at portaudio\build\Debug.
+.EXAMPLE
+.\build_portaudio_win.ps1 -DownloadOnly
+Downloads PortAudio.
+Build it manually by, for example, http://portaudio.com/docs/v19-doxydocs/compile_windows.html
+or http://portaudio.com/docs/v19-doxydocs/compile_windows_asio_msvc.html .
+.PARAMETER NoASIO
+Build PortAudio without support of ASIO (Fastest but requires automatically-downloaded SDK)
+.PARAMETER NoWASAPI
+Build PortAudio without support of WASAPI (2nd Fastest)
+.PARAMETER WDM
+Build PortAudio with support of WDM (2nd Slowest)
+.PARAMETER MME
+Build PortAudio with support of MME (Slowest)
+.PARAMETER DownloadOnly
+Don't build.  Build it manually for example using Visual Studio.
+.PARAMETER DebugBuild
+Build PortAudio with Debug configuration.
+
+.LINK
+https://github.com/tats-u/portaudio_autobuild_windows
+#>
+
 [cmdletbinding()]
 Param([switch]$NoASIO, [switch]$NoWASAPI, [switch]$WDM, [switch]$MME, [switch]$DownloadOnly, [switch]$DebugBuild)
 
