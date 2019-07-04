@@ -4,7 +4,9 @@ Languages: [🇯🇵](./README.ja.md)
 
 ## How to use
 
-Just execute the script.  ASIO & WASAPI are enabled by default.
+Clone or `git submodule add` this repo, or just download `build_portaudio_win.ps1`.
+
+Then, all you have to do is just to execute the script.  ASIO & WASAPI are enabled by default.
 
 ```powershell
 .\build_portaudio_win.ps1
