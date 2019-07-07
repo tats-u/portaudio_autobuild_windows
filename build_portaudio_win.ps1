@@ -43,7 +43,7 @@ Param([switch]$NoASIO, [switch]$NoWASAPI, [switch]$WDM, [switch]$MME, [switch]$D
 
 $ErrorActionPreference = "Stop"
 
-$InitialDir = $PWD
+Push-Location
 
 try {
 
@@ -70,12 +70,12 @@ try {
   # Fix typo preventing us from enabling WASAPI
   # See: https://app.assembla.com/spaces/portaudio/tickets/261/details
   $RootCMakeListsContent = Get-Content -Encoding UTF8 -Raw CMakeLists.txt
-  if($RootCMakeListsContent -match "`n *IF\(MSVS\) *`n") {
+  if ($RootCMakeListsContent -match "`n *IF\(MSVS\) *`n") {
     Write-Verbose "Fixing bug in CMakeLists.txt in PortAudio."
     [IO.File]::WriteAllText("$PWD\CMakeLists.txt", $RootCMakeListsContent.Replace("IF(MSVS)", "IF(MSVC)"))
   }
 
-  if(-not $NoASIO -and (-not (Test-Path src\hostapi\asio\ASIOSDK))) {
+  if (-not $NoASIO -and (-not (Test-Path src\hostapi\asio\ASIOSDK))) {
     Write-Verbose "Downloading ASIO SDK."
     Set-Location src\hostapi\asio
     Invoke-WebRequest https://www.steinberg.net/asiosdk -OutFile asiosdk.zip
@@ -86,11 +86,12 @@ try {
     Move-Item asiosdk_*.*.*_*\ ASIOSDK
   }
 
-  if(-not $DownloadOnly) {
-    if(Get-Command Import-VisualStudioEnvironment -ErrorAction Ignore) {
+  if (-not $DownloadOnly) {
+    if (Get-Command Import-VisualStudioEnvironment -ErrorAction Ignore) {
       Write-Verbose "Enabling Visual Studio Envirnoment."
       Import-VisualStudioEnvironment
-    } else {
+    }
+    else {
       Write-Warning "Command Import-VisualStudioEnvironment is not installed.  It can be installed by:`nInstall-Module -Name WintellectPowerShell -Scope CurrentUser"
     }
     $BuildType = if ($DebugBuild) { "Debug" } else { "Release" }
@@ -103,8 +104,10 @@ try {
     Write-Output "PortAudio was successfully built.  Use $PWD\$BuildType\portaudio_x64.{dll,lib}."
   }
 
-} catch {
+}
+catch {
   throw
-} finally {
-  Set-Location $InitialDir
+}
+finally {
+  Pop-Location
 }
