@@ -24,9 +24,9 @@ or http://portaudio.com/docs/v19-doxydocs/compile_windows_asio_msvc.html .
 .PARAMETER NoASIO
 Build PortAudio without support of ASIO (Fastest but requires automatically-downloaded SDK)
 .PARAMETER NoWASAPI
-Build PortAudio without support of WASAPI (2nd Fastest)
+Build PortAudio without support of WASAPI (2nd fastest)
 .PARAMETER WDM
-Build PortAudio with support of WDM (2nd Slowest)
+Build PortAudio with support of WDM (2nd slowest)
 .PARAMETER MME
 Build PortAudio with support of MME (Slowest)
 .PARAMETER DownloadOnly
