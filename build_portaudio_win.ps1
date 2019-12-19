@@ -46,6 +46,7 @@ Param([switch]$NoASIO, [switch]$NoWASAPI, [switch]$WDM, [switch]$MME, [switch]$D
 $ErrorActionPreference = "Stop"
 
 $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+$VSWhereFound = test-path $vswhere -PathType Leaf
 
 Push-Location
 
@@ -101,19 +102,31 @@ try {
 
   if (-not $DownloadOnly) {
     if (-not (Get-Command cl -ErrorAction Ignore)) {
-      if ((Get-Command Import-VisualStudioEnvironment -ErrorAction Ignore)) {
+      if (
+        (Get-Command Import-VisualStudioEnvironment -ErrorAction Ignore) -and
+        (
+          -not $VSWhereFound -or
+          ((& $vswhere -latest -property catalog_productLineVersion) -in (Get-Command Import-VisualStudioEnvironment).Parameters.VSVersion.Attributs.ValidValues)
+        )
+      ) {
         Write-Verbose "Enabling Visual Studio Envirnoment."
         Import-VisualStudioEnvironment
-      } elseif ((Get-Command invoke-CmdScript -ErrorAction Ignore) -and (Get-Item $vswhere -ErrorAction Ignore)) {
+      } elseif ((Get-Command invoke-CmdScript -ErrorAction Ignore) -and $VSWhereFound) {
         Write-Verbose "Enabling Visual Studio Envirnoment."
-        Invoke-CmdScript "$(& $vswhere -latest -property installationPath)\VC\Auxiliary\Build\vcvars64.bat"
+        $VCVars64 = & $vswhere -latest -property installationPath -find "VC\Auxiliary\Build\vcvars64.bat"
+        if($null -ne $VCVars64) {
+        Invoke-CmdScript $VCVars64
+        } else {
+          Write-Error "Visual C++ seems not to be installed to Visual Studio." -Category NotInstalled
+          exit 1
+        }
       } else {
         Write-Error "Command Import-VisualStudioEnvironment is not installed.  It can be installed by:`nInstall-Module -Name WintellectPowerShell -Scope CurrentUser" -Category NotInstalled
         exit 1
       }
     }
     $BuildType = if ($DebugBuild) { "Debug" } else { "Release" }
-    $VSVersion = if((Get-Item $vswhere -ErrorAction Ignore)) {
+    $VSVersion = if($VSWhereFound) {
       (& $vswhere -path (Get-Command cl).Path -property installationVersion) -replace "\..*", ""
     } else {
       (Get-Command msbuild).Version.Major
