@@ -143,10 +143,10 @@ try {
         Write-Verbose "Created a directory: $BuildRoot"
       }
     }
-    $PortAudioRealativeRootFromBuildDir = if ($UseNinja) { "..\.." } else {".." }
     Push-Location
     try {
       Set-Location $BuildRoot
+      $PortAudioRealativeRootFromBuildDir = Resolve-Path -Relative "$PSScriptRoot\portaudio"
       Write-Verbose "Configuring with CMake..."
       Write-Verbose "Build Type: $BuildType / ASIO: $(-not $NoASIO) / WASAPI: $(-not $NoWASAPI) / WDM: $WDM / MME: $MME"
       Write-Verbose "Build starting."
