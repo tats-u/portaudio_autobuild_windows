@@ -43,7 +43,7 @@ https://github.com/tats-u/portaudio_autobuild_windows
 #>
 
 [cmdletbinding()]
-Param([switch]$NoASIO, [switch]$NoWASAPI, [switch]$WDM, [switch]$MME, [switch]$DownloadOnly, [switch]$DebugBuild, [string]$BuildRoot = "$PSScriptRoot\portaudio\build", [switch]$PrefersNinja)
+Param([switch]$NoASIO, [switch]$NoWASAPI, [switch]$WDM, [switch]$MME, [switch]$DownloadOnly, [switch]$DebugBuild, [string]$BuildRoot = "$PSScriptRoot\portaudio_build", [switch]$PrefersNinja)
 
 $ErrorActionPreference = "Stop"
 
