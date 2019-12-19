@@ -115,9 +115,9 @@ try {
         Import-VisualStudioEnvironment
       } elseif ((Get-Command invoke-CmdScript -ErrorAction Ignore) -and $VSWhereFound) {
         Write-Verbose "Enabling Visual Studio Envirnoment."
-        $VCVars64 = & $vswhere -latest -property installationPath -find "VC\Auxiliary\Build\vcvars64.bat"
+        $VCVars64 = & $vswhere -latest -find "VC\Auxiliary\Build\vcvars64.bat"
         if($null -ne $VCVars64) {
-        Invoke-CmdScript $VCVars64
+          Invoke-CmdScript $VCVars64
         } else {
           Write-Error "Visual C++ seems not to be installed to Visual Studio." -Category NotInstalled
           exit 1
