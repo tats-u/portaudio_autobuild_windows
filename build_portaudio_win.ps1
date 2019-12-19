@@ -45,6 +45,8 @@ Param([switch]$NoASIO, [switch]$NoWASAPI, [switch]$WDM, [switch]$MME, [switch]$D
 
 $ErrorActionPreference = "Stop"
 
+$vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+
 Push-Location
 
 try {
@@ -98,20 +100,30 @@ try {
   }
 
   if (-not $DownloadOnly) {
-    if (Get-Command Import-VisualStudioEnvironment -ErrorAction Ignore) {
-      Write-Verbose "Enabling Visual Studio Envirnoment."
-      Import-VisualStudioEnvironment
-    }
-    else {
-      Write-Warning "Command Import-VisualStudioEnvironment is not installed.  It can be installed by:`nInstall-Module -Name WintellectPowerShell -Scope CurrentUser"
+    if (-not (Get-Command cl -ErrorAction Ignore)) {
+      if ((Get-Command Import-VisualStudioEnvironment -ErrorAction Ignore)) {
+        Write-Verbose "Enabling Visual Studio Envirnoment."
+        Import-VisualStudioEnvironment
+      } elseif ((Get-Command invoke-CmdScript -ErrorAction Ignore) -and (Get-Item $vswhere -ErrorAction Ignore)) {
+        Write-Verbose "Enabling Visual Studio Envirnoment."
+        Invoke-CmdScript "$(& $vswhere -latest -property installationPath)\VC\Auxiliary\Build\vcvars64.bat"
+      } else {
+        Write-Error "Command Import-VisualStudioEnvironment is not installed.  It can be installed by:`nInstall-Module -Name WintellectPowerShell -Scope CurrentUser" -Category NotInstalled
+        exit 1
+      }
     }
     $BuildType = if ($DebugBuild) { "Debug" } else { "Release" }
+    $VSVersion = if((Get-Item $vswhere -ErrorAction Ignore)) {
+      (& $vswhere -path (Get-Command cl).Path -property installationVersion) -replace "\..*", ""
+    } else {
+      (Get-Command msbuild).Version.Major
+    }
     Push-Location
     try {
       Set-Location $BuildRoot
       Write-Verbose "Configuring with CMake..."
       Write-Verbose "Build Type: $BuildType / ASIO: $(-not $NoASIO) / WASAPI: $(-not $NoWASAPI) / WDM: $WDM / MME: $MME"
-      cmake .. -G "Visual Studio $((Get-Command msbuild).Version.Major)" -A x64 "-DPA_USE_ASIO=$(if($NoASIO) { 'OFF' } else { 'ON' })" "-DASIOSDK_ROOT_DIR=..\src\hostapi\asio\ASIOSDK" "-DPA_USE_WMME=$(if($MME) { 'ON' } else { 'OFF' })" "-DPA_USE_WASAPI=$(if($NoWASAPI) { 'OFF' } else { 'ON' })" "-DPA_USE_WDMKS=$(if($WDM) { 'ON' } else { 'OFF' })" -DPA_USE_DS=OFF "-DCMAKE_BUILD_TYPE=$BuildType"
+      cmake .. -G "Visual Studio $VSVersion" -A x64 "-DPA_USE_ASIO=$(if($NoASIO) { 'OFF' } else { 'ON' })" "-DASIOSDK_ROOT_DIR=..\src\hostapi\asio\ASIOSDK" "-DPA_USE_WMME=$(if($MME) { 'ON' } else { 'OFF' })" "-DPA_USE_WASAPI=$(if($NoWASAPI) { 'OFF' } else { 'ON' })" "-DPA_USE_WDMKS=$(if($WDM) { 'ON' } else { 'OFF' })" -DPA_USE_DS=OFF "-DCMAKE_BUILD_TYPE=$BuildType"
       Write-Verbose "Build starting."
       msbuild portaudio.sln /t:build "/p:Configuration=$BuildType" /v:m /nologo
       Write-Output "PortAudio was successfully built.  Use $PWD\$BuildType\portaudio_x64.{dll,lib}."
