@@ -48,7 +48,11 @@ Param([switch]$NoASIO, [switch]$NoWASAPI, [switch]$WDM, [switch]$MME, [switch]$D
 $ErrorActionPreference = "Stop"
 
 $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-$VSWhereFound = test-path $vswhere -PathType Leaf
+$VSWhereFound = Test-Path $vswhere -PathType Leaf
+
+if(-not (Test-Path variable:IsWindows)) {
+  $IsWindows = Test-Path $env:windir
+}
 
 Push-Location
 
@@ -66,7 +70,7 @@ try {
     Write-Verbose "Downloading the latest PortAudio."
     Invoke-WebRequest "http://www.portaudio.com/$LatestPortAudioRelativePath" -OutFile portaudio.tgz
     tar xf portaudio.tgz
-    Remove-Item .\portaudio.tgz
+    Remove-Item portaudio.tgz
     if (-not (Test-Path portaudio -PathType Container)) {
       Write-Error "Folder portaudio was not created." -Category InvalidData -CategoryReason "portaudio.tgz did not contain directory portaudio."
       exit 1
@@ -88,8 +92,8 @@ try {
       Write-Verbose "Downloading ASIO SDK."
       Set-Location src\hostapi\asio
       Invoke-WebRequest https://www.steinberg.net/asiosdk -OutFile asiosdk.zip
-      Expand-Archive -Path .\asiosdk.zip -DestinationPath .
-      Remove-Item .\asiosdk.zip
+      Expand-Archive -Path asiosdk.zip -DestinationPath .
+      Remove-Item asiosdk.zip
       # The last \ is to specify a folder.
       # Just renaming ASIO SDK folder.
       Move-Item asiosdk_*.*.*_*\ ASIOSDK
@@ -103,7 +107,7 @@ try {
   }
 
   if (-not $DownloadOnly) {
-    if (-not (Get-Command cl -ErrorAction Ignore)) {
+    if ($IsWindows -and -not (Get-Command cl -ErrorAction Ignore)) {
       if (
         (Get-Command Import-VisualStudioEnvironment -ErrorAction Ignore) -and
         (
@@ -130,10 +134,12 @@ try {
     $BuildType = if ($DebugBuild) { "Debug" } else { "Release" }
     $VSVersion = if($VSWhereFound) {
       (& $vswhere -path (Get-Command cl).Path -property installationVersion) -replace "\..*", ""
-    } else {
+    } elseif($IsWindows) {
       (Get-Command msbuild).Version.Major
+    } else {
+      "" # HACK: for avoiding error
     }
-    $UseNinja = $PrefersNinja -and (Get-Command ninja -ErrorAction Ignore)
+    $UseNinja = ($PrefersNinja -or -not $IsWindows) -and (Get-Command ninja -ErrorAction Ignore)
     $CMakeTarget = if ($UseNinja) { "Ninja" } else { "Visual Studio $VSVersion" }
     if($UseNinja) {
       $BuildRoot = join-path $BuildRoot $BuildType
@@ -146,7 +152,7 @@ try {
     Push-Location
     try {
       Set-Location $BuildRoot
-      $PortAudioRealativeRootFromBuildDir = Resolve-Path -Relative "$PSScriptRoot\portaudio"
+      $PortAudioRealativeRootFromBuildDir = Resolve-Path -Relative (Join-Path $PSScriptRoot portaudio)
       Write-Verbose "Configuring with CMake..."
       Write-Verbose "Build Type: $BuildType / ASIO: $(-not $NoASIO) / WASAPI: $(-not $NoWASAPI) / WDM: $WDM / MME: $MME"
       Write-Verbose "Build starting."
@@ -154,14 +160,14 @@ try {
       if(-not $UseNinja) {
         $CmakeArgs += ("-A", "x64")
       }
-      $CMakeArgs += ("-DPA_USE_ASIO=$(if($NoASIO) { 'OFF' } else { 'ON' })", "-DASIOSDK_ROOT_DIR=$PortAudioRealativeRootFromBuildDir\src\hostapi\asio\ASIOSDK", "-DPA_USE_WMME=$(if($MME) { 'ON' } else { 'OFF' })", "-DPA_USE_WASAPI=$(if($NoWASAPI) { 'OFF' } else { 'ON' })", "-DPA_USE_WDMKS=$(if($WDM) { 'ON' } else { 'OFF' })", "-DPA_USE_DS=OFF", "-DCMAKE_BUILD_TYPE=$BuildType")
+      $CMakeArgs += ("-DPA_USE_ASIO=$(if($NoASIO) { 'OFF' } else { 'ON' })", "-DASIOSDK_ROOT_DIR=$(Join-Path $PortAudioRealativeRootFromBuildDir src hostapi asio ASIOSDK)", "-DPA_USE_WMME=$(if($MME) { 'ON' } else { 'OFF' })", "-DPA_USE_WASAPI=$(if($NoWASAPI) { 'OFF' } else { 'ON' })", "-DPA_USE_WDMKS=$(if($WDM) { 'ON' } else { 'OFF' })", "-DPA_USE_DS=OFF", "-DCMAKE_BUILD_TYPE=$BuildType")
       cmake $CmakeArgs
       if ($UseNinja) {
         ninja
       } else {
         msbuild portaudio.sln /t:build "/p:Configuration=$BuildType" /v:m /nologo
       }
-      Write-Output "PortAudio was successfully built.  Use $(if ($UseNinja) { $PWD } else { "$PWD\$BuildType" })\portaudio_x64.{dll,lib}."
+      Write-Output "PortAudio was successfully built.  Use $(Join-Path (if ($UseNinja) { $PWD } else { Join-Path $PWD $BuildType }) "portaudio_x64.{dll,lib}")."
     }
     catch {
       throw
