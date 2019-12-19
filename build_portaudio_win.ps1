@@ -35,13 +35,15 @@ Don't build.  Build it manually for example using Visual Studio.
 Build PortAudio with Debug configuration.
 .PARAMETER BuildRoot
 Build root directory.  Library will be created at $BuildRoot\{Debug,Release}\.
+.PARAMETER PrefersNinja
+Build Ninja instead of MSBuild if possible
 
 .LINK
 https://github.com/tats-u/portaudio_autobuild_windows
 #>
 
 [cmdletbinding()]
-Param([switch]$NoASIO, [switch]$NoWASAPI, [switch]$WDM, [switch]$MME, [switch]$DownloadOnly, [switch]$DebugBuild, [string]$BuildRoot = "$PSScriptRoot\portaudio\build")
+Param([switch]$NoASIO, [switch]$NoWASAPI, [switch]$WDM, [switch]$MME, [switch]$DownloadOnly, [switch]$DebugBuild, [string]$BuildRoot = "$PSScriptRoot\portaudio\build", [switch]$PrefersNinja)
 
 $ErrorActionPreference = "Stop"
 
@@ -131,15 +133,35 @@ try {
     } else {
       (Get-Command msbuild).Version.Major
     }
+    $UseNinja = $PrefersNinja -and (Get-Command ninja -ErrorAction Ignore)
+    $CMakeTarget = if ($UseNinja) { "Ninja" } else { "Visual Studio $VSVersion" }
+    if($UseNinja) {
+      $BuildRoot = join-path $BuildRoot $BuildType
+    }
+    if(-not (Test-Path $BuildRoot)) {
+      if(New-item -type Directory $BuildRoot) {
+        Write-Verbose "Created a directory: $BuildRoot"
+      }
+    }
+    $PortAudioRealativeRootFromBuildDir = if ($UseNinja) { "..\.." } else {".." }
     Push-Location
     try {
       Set-Location $BuildRoot
       Write-Verbose "Configuring with CMake..."
       Write-Verbose "Build Type: $BuildType / ASIO: $(-not $NoASIO) / WASAPI: $(-not $NoWASAPI) / WDM: $WDM / MME: $MME"
-      cmake .. -G "Visual Studio $VSVersion" -A x64 "-DPA_USE_ASIO=$(if($NoASIO) { 'OFF' } else { 'ON' })" "-DASIOSDK_ROOT_DIR=..\src\hostapi\asio\ASIOSDK" "-DPA_USE_WMME=$(if($MME) { 'ON' } else { 'OFF' })" "-DPA_USE_WASAPI=$(if($NoWASAPI) { 'OFF' } else { 'ON' })" "-DPA_USE_WDMKS=$(if($WDM) { 'ON' } else { 'OFF' })" -DPA_USE_DS=OFF "-DCMAKE_BUILD_TYPE=$BuildType"
       Write-Verbose "Build starting."
-      msbuild portaudio.sln /t:build "/p:Configuration=$BuildType" /v:m /nologo
-      Write-Output "PortAudio was successfully built.  Use $PWD\$BuildType\portaudio_x64.{dll,lib}."
+      $CMakeArgs = ($PortAudioRealativeRootFromBuildDir, "-G", $CMakeTarget)
+      if(-not $UseNinja) {
+        $CmakeArgs += ("-A", "x64")
+      }
+      $CMakeArgs += ("-DPA_USE_ASIO=$(if($NoASIO) { 'OFF' } else { 'ON' })", "-DASIOSDK_ROOT_DIR=$PortAudioRealativeRootFromBuildDir\src\hostapi\asio\ASIOSDK", "-DPA_USE_WMME=$(if($MME) { 'ON' } else { 'OFF' })", "-DPA_USE_WASAPI=$(if($NoWASAPI) { 'OFF' } else { 'ON' })", "-DPA_USE_WDMKS=$(if($WDM) { 'ON' } else { 'OFF' })", "-DPA_USE_DS=OFF", "-DCMAKE_BUILD_TYPE=$BuildType")
+      cmake $CmakeArgs
+      if ($UseNinja) {
+        ninja
+      } else {
+        msbuild portaudio.sln /t:build "/p:Configuration=$BuildType" /v:m /nologo
+      }
+      Write-Output "PortAudio was successfully built.  Use $(if ($UseNinja) { $PWD } else { "$PWD\$BuildType" })\portaudio_x64.{dll,lib}."
     }
     catch {
       throw
