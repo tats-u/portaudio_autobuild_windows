@@ -111,10 +111,10 @@ try {
           ((& $vswhere -latest -property catalog_productLineVersion) -in (Get-Command Import-VisualStudioEnvironment).Parameters.VSVersion.Attributs.ValidValues)
         )
       ) {
-        Write-Verbose "Enabling Visual Studio Envirnoment."
+        Write-Verbose "Enabling Visual Studio Envirnoment using Import-VisualStudioEnvironment."
         Import-VisualStudioEnvironment
       } elseif ((Get-Command invoke-CmdScript -ErrorAction Ignore) -and $VSWhereFound) {
-        Write-Verbose "Enabling Visual Studio Envirnoment."
+        Write-Verbose "Enabling Visual Studio Envirnoment using Invoke-CmdScript."
         $VCVars64 = & $vswhere -latest -find "VC\Auxiliary\Build\vcvars64.bat"
         if($null -ne $VCVars64) {
           Invoke-CmdScript $VCVars64
