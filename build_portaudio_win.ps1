@@ -160,14 +160,14 @@ try {
       if(-not $UseNinja) {
         $CmakeArgs += ("-A", "x64")
       }
-      $CMakeArgs += ("-DPA_USE_ASIO=$(if($NoASIO) { 'OFF' } else { 'ON' })", "-DASIOSDK_ROOT_DIR=$(Join-Path $PortAudioRealativeRootFromBuildDir src hostapi asio ASIOSDK)", "-DPA_USE_WMME=$(if($MME) { 'ON' } else { 'OFF' })", "-DPA_USE_WASAPI=$(if($NoWASAPI) { 'OFF' } else { 'ON' })", "-DPA_USE_WDMKS=$(if($WDM) { 'ON' } else { 'OFF' })", "-DPA_USE_DS=OFF", "-DCMAKE_BUILD_TYPE=$BuildType")
+      $CMakeArgs += ("-DPA_USE_ASIO=$(if($NoASIO) { 'OFF' } else { 'ON' })", "-DASIOSDK_ROOT_DIR=$(Join-Path $PortAudioRealativeRootFromBuildDir src | Join-Path -ChildPath hostapi | Join-Path -ChildPath asio | Join-Path -ChildPath ASIOSDK)", "-DPA_USE_WMME=$(if($MME) { 'ON' } else { 'OFF' })", "-DPA_USE_WASAPI=$(if($NoWASAPI) { 'OFF' } else { 'ON' })", "-DPA_USE_WDMKS=$(if($WDM) { 'ON' } else { 'OFF' })", "-DPA_USE_DS=OFF", "-DCMAKE_BUILD_TYPE=$BuildType")
       cmake $CmakeArgs
       if ($UseNinja) {
         ninja
       } else {
         msbuild portaudio.sln /t:build "/p:Configuration=$BuildType" /v:m /nologo
       }
-      Write-Output "PortAudio was successfully built.  Use $(Join-Path (if ($UseNinja) { $PWD } else { Join-Path $PWD $BuildType }) "portaudio_x64.{dll,lib}")."
+      Write-Output "PortAudio was successfully built.  Use $(Join-Path $(if ($UseNinja) { $PWD } else { (Join-Path $PWD $BuildType) }) "portaudio_x64.{dll,lib}")."
     }
     catch {
       throw
