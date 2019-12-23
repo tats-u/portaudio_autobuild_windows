@@ -50,7 +50,7 @@ $ErrorActionPreference = "Stop"
 $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
 $VSWhereFound = Test-Path $vswhere -PathType Leaf
 
-$IsWin = if (Test-Path variable:IsWinows) {
+$IsWin = if (Test-Path variable:IsWindows) {
   # PowerShell 6+
   $IsWindows
 }
