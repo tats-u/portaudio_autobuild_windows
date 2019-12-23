@@ -90,7 +90,7 @@ try {
     $RootCMakeListsContent = Get-Content -Encoding UTF8 -Raw CMakeLists.txt
     if ($RootCMakeListsContent -match "`n *IF\(MSVS\) *`n") {
       Write-Verbose "Fixing bug in CMakeLists.txt in PortAudio."
-      [IO.File]::WriteAllText("$PWD\CMakeLists.txt", $RootCMakeListsContent.Replace("IF(MSVS)", "IF(MSVC)"))
+      [IO.File]::WriteAllText((Join-Path $PWD "CMakeLists.txt"), $RootCMakeListsContent.Replace("IF(MSVS)", "IF(MSVC)"))
     }
 
     if (-not $NoASIO -and (-not (Test-Path src\hostapi\asio\ASIOSDK))) {
