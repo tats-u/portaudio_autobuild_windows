@@ -20,18 +20,18 @@ Copy-Item portaudio_build\Release\portaudio_x64.dll $USERPROFILE\path\to\your\pr
 
 ## 要件
 
-- Visual C++ 2019または2017
+- Visual C++ 2019または2017 (Windowsのみ)
 - CMake 3.13〜 (Visual Studio 2019付属で可)
 - Ninja (VS付属で可、オプション)
-- [WintellectPowerShell](https://github.com/Wintellect/WintellectPowerShell)
+- [WintellectPowerShell](https://github.com/Wintellect/WintellectPowerShell) (Windowsのみ)
 
 ## 主なオプション
 
-|オプション名|説明|
-|------------|----|
-|`-DebugBuild`|デバッグ用のライブラリをビルドします。|
-|`-PrefersNinja`|MSBuild(非WindowsではMake)の代わりにNinjaを利用してビルドします。|
-|`-DownloadOnly`|ダウンロードのみを行い、ビルドしません。|
+| オプション名         | 説明                                              |
+|-----------------|--------------------------------------------------|
+| `-DebugBuild`   | デバッグ用のライブラリをビルドします。                              |
+| `-PrefersNinja` | MSBuild(非WindowsではMake)の代わりにNinjaを利用してビルドします。 |
+| `-DownloadOnly` | ダウンロードのみを行い、ビルドしません。                             |
 
 
 
