@@ -93,7 +93,7 @@ try {
       [IO.File]::WriteAllText((Join-Path $PWD "CMakeLists.txt"), $RootCMakeListsContent.Replace("IF(MSVS)", "IF(MSVC)"))
     }
 
-    if (-not $NoASIO -and (-not (Test-Path src\hostapi\asio\ASIOSDK))) {
+    if ($IsWin -and -not $NoASIO -and (-not (Test-Path src\hostapi\asio\ASIOSDK))) {
       Write-Verbose "Downloading ASIO SDK."
       Set-Location src\hostapi\asio
       Invoke-WebRequest https://www.steinberg.net/asiosdk -OutFile asiosdk.zip
