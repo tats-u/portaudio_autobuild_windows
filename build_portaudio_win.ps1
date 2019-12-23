@@ -135,24 +135,33 @@ try {
       }
     }
     $BuildType = if ($DebugBuild) { "Debug" } else { "Release" }
-    $VSVersion = if ($VSWhereFound) {
-      # ($var = command args) -and $? returns $true only if command args succeeded
+    $VSVersion = if ($IsWindows) {
+      # ($var1 = $env:ENV) -and $? returns $true only if $env:ENV exists
       if (
-        (($_VSFullVersion = & $vswhere -path (Get-Command cl).Path -property installationVersion) -and $?) -or
-        ((($_VSFullVersion = & $vswhere -latest -property installationVersion) -and $?))
+        (($_VSFullVersion = $env:VisualStudioVersion) -and $?) -or
+        (($_VSFullVersion = $env:VSCMD_VER) -and $?)
       ) {
         $_VSFullVersion -replace "\..*", ""
       }
+      elseif ($VSWhereFound) {
+        # - ($var = command args) -and $? returns $true only if command args succeeded
+        # - old vswhere doesn't support -path option
+        if (
+          (($_VSFullVersion = & $vswhere -path (Get-Command cl).Path -property installationVersion) -and $?) -or
+          ((($_VSFullVersion = & $vswhere -latest -property installationVersion) -and $?))
+        ) {
+          $_VSFullVersion -replace "\..*", ""
+        }
+        else {
+          (Get-Command msbuild).Version.Major
+        }
+      }
       else {
-        # old vswhere doesn't support -path
         (Get-Command msbuild).Version.Major
       }
     }
-    elseif ($IsWindows) {
-      (Get-Command msbuild).Version.Major
-    }
     else {
-      "" # HACK: for avoiding error
+      "" # HACK: for avoiding error in non-Windows
     }
     $UseNinja = ($PrefersNinja -or -not $IsWindows) -and (Get-Command ninja -ErrorAction Ignore)
     $CMakeTarget = if ($UseNinja) { "Ninja" } else { "Visual Studio $VSVersion" }
