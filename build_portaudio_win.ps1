@@ -50,8 +50,13 @@ $ErrorActionPreference = "Stop"
 $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
 $VSWhereFound = Test-Path $vswhere -PathType Leaf
 
-if (-not (Test-Path variable:IsWindows)) {
-  $IsWindows = Test-Path $env:windir
+$IsWin = if (Test-Path variable:IsWinows) {
+  # PowerShell 6+
+  $IsWindows
+}
+else {
+  # PowerShell 5-
+  Test-Path $env:windir
 }
 
 Push-Location
@@ -107,7 +112,7 @@ try {
   }
 
   if (-not $DownloadOnly) {
-    if ($IsWindows -and -not (Get-Command cl -ErrorAction Ignore)) {
+    if ($IsWin -and -not (Get-Command cl -ErrorAction Ignore)) {
       if (
         (Get-Command Import-VisualStudioEnvironment -ErrorAction Ignore) -and
         (
@@ -135,7 +140,7 @@ try {
       }
     }
     $BuildType = if ($DebugBuild) { "Debug" } else { "Release" }
-    $VSVersion = if ($IsWindows) {
+    $VSVersion = if ($IsWin) {
       # ($var1 = $env:ENV) returns $true only if $env:ENV is truely (not 0, $null, or @())
       if (
         ($_VSFullVersion = $env:VisualStudioVersion) -or
@@ -163,7 +168,7 @@ try {
     else {
       "" # HACK: for avoiding error in non-Windows
     }
-    $UseNinja = ($PrefersNinja -or -not $IsWindows) -and (Get-Command ninja -ErrorAction Ignore)
+    $UseNinja = ($PrefersNinja -or -not $IsWin) -and (Get-Command ninja -ErrorAction Ignore)
     $CMakeTarget = if ($UseNinja) { "Ninja" } else { "Visual Studio $VSVersion" }
     if ($UseNinja) {
       $BuildRoot = join-path $BuildRoot $BuildType
