@@ -168,7 +168,7 @@ try {
     else {
       "" # HACK: for avoiding error in non-Windows
     }
-    $UseNinja = ($PrefersNinja -or -not $IsWin) -and (Get-Command ninja -ErrorAction Ignore)
+    $UseNinja = ($PrefersNinja) -and (Get-Command ninja -ErrorAction Ignore)
     $CMakeTarget = if ($UseNinja) { "Ninja" } elseif ($IsWin) { "Visual Studio $VSVersion" } else { "Unix Makefiles" }
     $UseMSBuild = $IsWin -and -not $UseNinja
     if (-not $UseMSBuild) {
