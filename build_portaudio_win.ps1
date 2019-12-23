@@ -64,8 +64,8 @@ try {
     Write-Verbose "PortAudio is not downloaded.  Installing it automatically..."
     Write-Verbose "Fetching information on the place of the latest PortAudio."
     $PortAudioDownloadPageContent = Invoke-WebRequest "http://www.portaudio.com/download.html"
-    $LatestPortAudioRelativePath = ($PortAudioDownloadPageContent.ParsedHtml.getElementById("content").getElementsByTagName("a") |
-      Where-Object { $_.pathname -like "*.tgz" })[0].pathname
+    $LatestPortAudioRelativePath = ($PortAudioDownloadPageContent.Links |
+      Where-Object { $_.href -like "*.tgz" })[0].href
 
     Write-Verbose "Downloading the latest PortAudio."
     Invoke-WebRequest "http://www.portaudio.com/$LatestPortAudioRelativePath" -OutFile portaudio.tgz
