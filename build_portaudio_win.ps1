@@ -50,7 +50,7 @@ $ErrorActionPreference = "Stop"
 $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
 $VSWhereFound = Test-Path $vswhere -PathType Leaf
 
-if(-not (Test-Path variable:IsWindows)) {
+if (-not (Test-Path variable:IsWindows)) {
   $IsWindows = Test-Path $env:windir
 }
 
@@ -117,35 +117,50 @@ try {
       ) {
         Write-Verbose "Enabling Visual Studio Envirnoment using Import-VisualStudioEnvironment."
         Import-VisualStudioEnvironment
-      } elseif ((Get-Command invoke-CmdScript -ErrorAction Ignore) -and $VSWhereFound) {
+      }
+      elseif ((Get-Command invoke-CmdScript -ErrorAction Ignore) -and $VSWhereFound) {
         Write-Verbose "Enabling Visual Studio Envirnoment using Invoke-CmdScript."
         $VCVars64 = & $vswhere -latest -find "VC\Auxiliary\Build\vcvars64.bat"
-        if($null -ne $VCVars64) {
+        if ($null -ne $VCVars64) {
           Invoke-CmdScript $VCVars64
-        } else {
+        }
+        else {
           Write-Error "Visual C++ seems not to be installed to Visual Studio." -Category NotInstalled
           exit 1
         }
-      } else {
+      }
+      else {
         Write-Error "Command Import-VisualStudioEnvironment is not installed.  It can be installed by:`nInstall-Module -Name WintellectPowerShell -Scope CurrentUser" -Category NotInstalled
         exit 1
       }
     }
     $BuildType = if ($DebugBuild) { "Debug" } else { "Release" }
-    $VSVersion = if($VSWhereFound) {
-      (& $vswhere -path (Get-Command cl).Path -property installationVersion) -replace "\..*", ""
-    } elseif($IsWindows) {
+    $VSVersion = if ($VSWhereFound) {
+      # ($var = command args) -and $? returns $true only if command args succeeded
+      if (
+        (($_VSFullVersion = & $vswhere -path (Get-Command cl).Path -property installationVersion) -and $?) -or
+        ((($_VSFullVersion = & $vswhere -latest -property installationVersion) -and $?))
+      ) {
+        $_VSFullVersion -replace "\..*", ""
+      }
+      else {
+        # old vswhere doesn't support -path
+        (Get-Command msbuild).Version.Major
+      }
+    }
+    elseif ($IsWindows) {
       (Get-Command msbuild).Version.Major
-    } else {
+    }
+    else {
       "" # HACK: for avoiding error
     }
     $UseNinja = ($PrefersNinja -or -not $IsWindows) -and (Get-Command ninja -ErrorAction Ignore)
     $CMakeTarget = if ($UseNinja) { "Ninja" } else { "Visual Studio $VSVersion" }
-    if($UseNinja) {
+    if ($UseNinja) {
       $BuildRoot = join-path $BuildRoot $BuildType
     }
-    if(-not (Test-Path $BuildRoot)) {
-      if(New-item -type Directory $BuildRoot) {
+    if (-not (Test-Path $BuildRoot)) {
+      if (New-item -type Directory $BuildRoot) {
         Write-Verbose "Created a directory: $BuildRoot"
       }
     }
@@ -157,7 +172,7 @@ try {
       Write-Verbose "Build Type: $BuildType / ASIO: $(-not $NoASIO) / WASAPI: $(-not $NoWASAPI) / WDM: $WDM / MME: $MME"
       Write-Verbose "Build starting."
       $CMakeArgs = ($PortAudioRealativeRootFromBuildDir, "-G", $CMakeTarget)
-      if(-not $UseNinja) {
+      if (-not $UseNinja) {
         $CMakeArgs += ("-A", "x64")
       }
       $CMakeArgs += ("-DPA_USE_ASIO=$(if($NoASIO) { 'OFF' } else { 'ON' })", "-DASIOSDK_ROOT_DIR=$(Join-Path $PortAudioRealativeRootFromBuildDir src | Join-Path -ChildPath hostapi | Join-Path -ChildPath asio | Join-Path -ChildPath ASIOSDK)", "-DPA_USE_WMME=$(if($MME) { 'ON' } else { 'OFF' })", "-DPA_USE_WASAPI=$(if($NoWASAPI) { 'OFF' } else { 'ON' })", "-DPA_USE_WDMKS=$(if($WDM) { 'ON' } else { 'OFF' })", "-DPA_USE_DS=OFF", "-DCMAKE_BUILD_TYPE=$BuildType")
