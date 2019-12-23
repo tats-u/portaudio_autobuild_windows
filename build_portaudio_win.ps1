@@ -136,10 +136,10 @@ try {
     }
     $BuildType = if ($DebugBuild) { "Debug" } else { "Release" }
     $VSVersion = if ($IsWindows) {
-      # ($var1 = $env:ENV) -and $? returns $true only if $env:ENV exists
+      # ($var1 = $env:ENV) returns $true only if $env:ENV is truely (not 0, $null, or @())
       if (
-        (($_VSFullVersion = $env:VisualStudioVersion) -and $?) -or
-        (($_VSFullVersion = $env:VSCMD_VER) -and $?)
+        ($_VSFullVersion = $env:VisualStudioVersion) -or
+        ($_VSFullVersion = $env:VSCMD_VER)
       ) {
         $_VSFullVersion -replace "\..*", ""
       }
