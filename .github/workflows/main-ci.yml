@@ -27,13 +27,13 @@ jobs:
       uses: actions/upload-artifact@v1.0.0
       with:
         # Artifact name
-        name: Debug
+        name: portaudio-debug-build-${{ matrix.os }}
         # Directory containing files to upload
         path: portaudio_build/Debug
     - name: Upload artifact (release)
       uses: actions/upload-artifact@v1.0.0
       with:
         # Artifact name
-        name: Release
+        name: portaudio-release-build-${{ matrix.os }}
         # Directory containing files to upload
         path: portaudio_build/Release
