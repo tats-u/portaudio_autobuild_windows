@@ -7,23 +7,22 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest]
-        pwsh: [powershell, pwsh]
-        exclude:
-          - os: ubuntu-latest
-            pwsh: powershell
     runs-on: ${{ matrix.os }}
 
     steps:
     - uses: actions/checkout@v1
+    - name: Install Wintellect-PowerShell
+      run: Install-Module -Name WintellectPowerShell -Force -AllowClobber
+      if: startsWith(matrix.os, 'windows')
     - name: Install ALSA2 headers
       run: |
         sudo apt-get update
         sudo apt-get install -y libasound2-dev
       if: startsWith(matrix.os, 'ubuntu')
     - name: Release build
-      run: ${{ matrix.pwsh }} ./build_portaudio_win.ps1
+      run: ./build_portaudio_win.ps1
     - name: Debug build
-      run: ${{ matrix.pwsh }} ./build_portaudio_win.ps1 -DebugBuild
+      run: ./build_portaudio_win.ps1 -DebugBuild
     - name: Upload artifact (debug)
       uses: actions/upload-artifact@v1.0.0
       with:
