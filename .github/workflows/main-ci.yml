@@ -1,0 +1,40 @@
+name: CI
+
+on: [push]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+        pwsh: [powershell, pwsh]
+        exclude:
+          - os: ubuntu-latest
+            pwsh: powershell
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install ALSA2 headers
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libasound2-dev
+      if: startsWith(matrix.os, 'ubuntu')
+    - name: Release build
+      run: ${{ matrix.pwsh }} ./build_portaudio_win.ps1
+    - name: Debug build
+      run: ${{ matrix.pwsh }} ./build_portaudio_win.ps1 -DebugBuild
+    - name: Upload artifact (debug)
+      uses: actions/upload-artifact@v1.0.0
+      with:
+        # Artifact name
+        name: Debug
+        # Directory containing files to upload
+        path: portaudio_build/Debug
+    - name: Upload artifact (release)
+      uses: actions/upload-artifact@v1.0.0
+      with:
+        # Artifact name
+        name: Release
+        # Directory containing files to upload
+        path: portaudio_build/Release
